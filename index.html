@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PACKBOX — Фулфилмент для WB и Ozon</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" href="img/logo-small.png">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Временные inline стили для прелоадера */
+        .preloader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #FFD700;
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.5s ease;
+            font-weight: 700;
+            font-size: 2rem;
+        }
+        .preloader.fade-out {
+            opacity: 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Прелоадер -->
+    <div class="preloader">
+        <div class="loader">PACKBOX</div>
+    </div>
+
+    <!-- Прогресс-бар -->
+    <div class="scroll-progress"></div>
+    
+    <!-- Плавающая навигация -->
+    <nav class="floating-nav">
+        <div class="container">
+            <a href="#" class="logo-link">
+                <img src="img/logo-small.png" alt="PACKBOX" class="nav-logo">
+                <span class="logo-text">PACKBOX</span>
+            </a>
+            <button class="mobile-menu-toggle" id="mobileMenuToggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <ul class="nav-menu">
+                <li><a href="#services">Услуги</a></li>
+                <li><a href="#pricing">Тарифы</a></li>
+                <li><a href="#advantages">Преимущества</a></li>
+                <li><a href="#faq">Вопросы</a></li>
+                <li><a href="#contact" class="nav-btn">Контакты</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Главный экран с анимацией -->
+    <header class="hero">
+        <div class="hero-background"></div>
+        <div class="hero-animation">
+            <img src="img/animation.gif" alt="Фулфилмент-анимация" class="custom-animation">
+        </div>
+        <div class="container hero-content">
+            <h1>Фулфилмент для <span class="wb-text">Wildberries</span> и <span class="ozon-text">Ozon</span></h1>
+            <p class="subtitle">Упаковка, стикеры, доставка — всё делаем за вас. Вы занимаетесь продажами.</p>
+            
+            <!-- Бейджи доверия -->
+            <div class="trust-badges">
+                <div class="trust-item">🚚 24ч обработка</div>
+                <div class="trust-item">🛡 Гарантия качества</div>
+                <div class="trust-item">💯 100% соблюдение сроков</div>
+            </div>
+            
+            <div class="hero-button-wrapper">
+                <button class="btn btn-large pulse-animation" id="calculate-btn">Получить расчёт</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Услуги -->
+    <section id="services" class="section">
+        <div class="container">
+            <h2>Наши услуги</h2>
+            <div class="services-grid">
+                <div class="service-card">
+                    <div class="service-icon">📦</div>
+                    <h3>Приём товаров</h3>
+                    <p>По артикулу, с учётом и фотофиксацией</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">🏭</div>
+                    <h3>Хранение</h3>
+                    <p>3 дня — бесплатно на наших складах</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">✂️</div>
+                    <h3>Упаковка</h3>
+                    <p>Пакеты, коробки, пупырка, термоплёнка</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">🏷️</div>
+                    <h3>Маркировка</h3>
+                    <p>Наклейка стикеров по стандартам WB/Ozon</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Галерея примеров -->
+    <section class="gallery-section">
+        <div class="container">
+            <h2>Примеры нашей работы</h2>
+            <div class="gallery-container">
+                <div class="gallery-item">
+                    <img src="img/gallery1.jpg" alt="Пример упаковки товаров">
+                    <div class="gallery-overlay">
+                        <p>Профессиональная упаковка</p>
+                    </div>
+                </div>
+                <div class="gallery-item">
+                    <img src="img/gallery2.jpg" alt="Маркировка товаров">
+                    <div class="gallery-overlay">
+                        <p>Точная маркировка</p>
+                    </div>
+                </div>
+                <div class="gallery-item">
+                    <img src="img/gallery3.jpg" alt="Готовые к отправке заказы">
+                    <div class="gallery-overlay">
+                        <p>Готовые к отправке заказы</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Тарифы с калькулятором -->
+    <section id="pricing" class="section pricing-section">
+        <div class="container">
+            <h2>Тарифы</h2>
+            
+            <!-- Калькулятор -->
+            <div class="calculator-wrapper">
+                <h3>Рассчитайте стоимость</h3>
+                <div class="calculator">
+                    <input type="number" id="order-count" placeholder="Количество заказов в месяц" min="0">
+                    <div class="calculator-result">Итого: <span id="calculation-result">0</span> ₽</div>
+                </div>
+            </div>
+
+            <div class="pricing-cards">
+                <div class="pricing-card">
+                    <h3>До 100 заказов</h3>
+                    <div class="price">40 ₽</div>
+                    <p>за заказ</p>
+                    <ul class="features-list">
+                        <li>✓ Хранение 3 дня бесплатно</li>
+                        <li>✓ Поддержка в Telegram</li>
+                        <li>✓ Стандартная упаковка</li>
+                    </ul>
+                    <button class="btn">Выбрать тариф</button>
+                </div>
+                <div class="pricing-card popular">
+                    <div class="popular-badge">Выгодно!</div>
+                    <h3>100-500 заказов</h3>
+                    <div class="price">36 ₽</div>
+                    <p>за заказ</p>
+                    <ul class="features-list">
+                        <li>✓ Все из базового</li>
+                        <li>✓ Персональный менеджер</li>
+                        <li>✓ Приоритетная обработка</li>
+                    </ul>
+                    <button class="btn">Выбрать тариф</button>
+                </div>
+                <div class="pricing-card">
+                    <h3>500+ заказов</h3>
+                    <div class="price">30 ₽</div>
+                    <p>за заказ</p>
+                    <ul class="features-list">
+                        <li>✓ Все из предыдущих</li>
+                        <li>✓ Выделенная зона хранения</li>
+                        <li>✓ Индивидуальные условия</li>
+                    </ul>
+                    <button class="btn">Выбрать тариф</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Преимущества -->
+    <section id="advantages" class="section advantages-section">
+        <div class="container">
+            <h2>Почему выбирают <span class="highlight-text">PACKBOX</span></h2>
+            <p class="section-subtitle">Наши ключевые преимущества, которые выделяют нас среди конкурентов</p>
+            
+            <div class="advantages-grid">
+                <div class="advantage-card" style="--card-color: #FF6B6B;">
+                    <div class="advantage-icon">🏆</div>
+                    <div class="advantage-number">01</div>
+                    <h3>Опыт работы</h3>
+                    <p>5 лет работаем с WB и Ozon, знаем все требования и нюансы</p>
+                    <div class="advantage-bg"></div>
+                </div>
+                
+                <div class="advantage-card" style="--card-color: #4ECDC4;">
+                    <div class="advantage-icon">⚡</div>
+                    <div class="advantage-number">02</div>
+                    <h3>Быстрая отправка</h3>
+                    <p>Обрабатываем заказы в день поступления - никаких задержек</p>
+                    <div class="advantage-bg"></div>
+                </div>
+                
+                <div class="advantage-card" style="--card-color: #FFD166;">
+                    <div class="advantage-number">03</div>
+                    <div class="advantage-icon">🔍</div>
+                    <h3>Прозрачность</h3>
+                    <p>Никаких скрытых платежей - вы платите только за реальные услуги</p>
+                    <div class="advantage-bg"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq" class="section faq-section">
+        <div class="container">
+            <h2>Частые вопросы</h2>
+            <div class="faq-accordion">
+                <div class="faq-item">
+                    <button class="faq-question">Сколько времени занимает отправка?</button>
+                    <div class="faq-answer">
+                        <p>Приёмка в день получения. Упаковка и отправка — 1 рабочий день.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question">Как вы получаете товар?</button>
+                    <div class="faq-answer">
+                        <p>Привозите на склад / отправляете через СДЭК / оформляете вывоз через нас.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question">Что если стикер не распечатается?</button>
+                    <div class="faq-answer">
+                        <p>Мы проверяем печать и сканируем перед отправкой. Все заказы дублируются вручную.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question">Можно ли брендировать упаковку?</button>
+                    <div class="faq-answer">
+                        <p>Да! Мы печатаем наклейки с вашим логотипом и пакуем в крафт или плёнку.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Контакты -->
+    <section id="contact" class="section contact-section">
+        <div class="container">
+            <h2>Подключитесь за 1 день</h2>
+            <div class="contact-wrapper">
+                <div class="contact-info">
+                    <h3>Контакты</h3>
+                    <p><strong>Telegram:</strong> @ffpackboz</p>
+                    <p><strong>Email:</strong> Packbox13@yandex.ru</p>
+                    <p><strong>Адрес склада:</strong> Москва, ул. Складочная, 15</p>
+                    <div class="mt-20">
+                        <p><strong>Часы работы:</strong></p>
+                        <p>Пн-Пт: 9:00-18:00</p>
+                        <p>Сб: 10:00-15:00</p>
+                    </div>
+                </div>
+                <form class="contact-form">
+                    <input type="text" name="name" placeholder="Ваше имя" required>
+                    <input type="tel" name="telephone" placeholder="Телефон" required>
+                    <input type="email" name="email" placeholder="Email">
+                    <textarea name="message" placeholder="Опишите ваш товар и маркетплейсы" rows="4"></textarea>
+                    <button type="submit" class="btn">Отправить заявку</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Чат поддержки -->
+    <div class="chat-widget">
+        <div class="chat-header">💬 Есть вопросы?</div>
+        <div class="chat-body">
+            <div class="chat-message bot">Здравствуйте! Чем могу помочь?</div>
+            <textarea placeholder="Напишите сообщение..."></textarea>
+            <button class="btn">Отправить</button>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <img src="img/logo-small.png" alt="PACKBOX">
+                    <span>PACKBOX</span>
+                </div>
+                <p>© 2023 Фулфилмент сервис PACKBOX. Все права защищены.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Кнопка "Наверх" -->
+    <button id="back-to-top" class="back-to-top">↑</button>
+
+    <script src="js/script.js"></script>
+    <script>
+        // Прелоадер
+        window.addEventListener('load', function() {
+            const preloader = document.querySelector('.preloader');
+            setTimeout(function() {
+                preloader.classList.add('fade-out');
+                setTimeout(function() {
+                    preloader.style.display = 'none';
+                }, 500);
+            }, 1000);
+        });
+
+        // Мобильное меню
+        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+        const navMenu = document.querySelector('.nav-menu');
+
+        mobileMenuToggle.addEventListener('click', function() {
+            this.classList.toggle('active');
+            navMenu.classList.toggle('active');
+            document.body.classList.toggle('no-scroll');
+        });
+
+        // Закрытие меню при клике на ссылку
+        document.querySelectorAll('.nav-menu a').forEach(link => {
+            link.addEventListener('click', () => {
+                mobileMenuToggle.classList.remove('active');
+                navMenu.classList.remove('active');
+                document.body.classList.remove('no-scroll');
+            });
+        });
+    </script>
+</body>
+</html>
