@@ -15,74 +15,128 @@ document.addEventListener('DOMContentLoaded', function() {
       
       return await response.json();
     } catch (error) {
-      console.warn('Не удалось загрузить конфигурацию Telegram. Бот отключен.', error);
+      console.error('Не удалось загрузить конфигурацию Telegram:', error);
       return null;
     }
   }
   
   // Инициализация Telegram бота
   (async function initTelegram() {
-    // Для локальной разработки (если нужно)
-    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    
-    // Пробуем загрузить конфиг только на GitHub Pages
-    let config = !isLocal ? await loadTelegramConfig() : null;
-    
-    if (config) {
-      TELEGRAM_BOT_TOKEN = config.BOT_TOKEN;
-      TELEGRAM_CHAT_ID = config.CHAT_ID;
-      isTelegramReady = true;
-      console.log('Telegram бот инициализирован');
-    } else {
-      console.warn('Бот Telegram не активирован - отсутствуют учетные данные');
+    try {
+      console.log('Начало инициализации Telegram бота...');
+      
+      // Всегда пытаемся загрузить конфиг на GitHub Pages
+      const config = await loadTelegramConfig();
+      
+      if (config && config.BOT_TOKEN && config.CHAT_ID) {
+        TELEGRAM_BOT_TOKEN = config.BOT_TOKEN;
+        TELEGRAM_CHAT_ID = config.CHAT_ID;
+        isTelegramReady = true;
+        
+        console.log('Telegram бот инициализирован!');
+        console.log('Токен:', TELEGRAM_BOT_TOKEN.substring(0, 6) + '...');
+        console.log('Chat ID:', TELEGRAM_CHAT_ID);
+      } else {
+        console.warn('Бот Telegram не активирован - неверные данные конфигурации');
+      }
+    } catch (error) {
+      console.error('Критическая ошибка инициализации бота:', error);
     }
   })();
   
   // Генерация уникального ID для пользователя
   let userId = localStorage.getItem('chat_user_id');
   if (!userId) {
-    userId = Math.random().toString(36).substr(2, 9);
+    userId = Math.random().toString(36).substring(2, 11);
     localStorage.setItem('chat_user_id', userId);
+    console.log('Сгенерирован новый User ID:', userId);
+  } else {
+    console.log('Найден существующий User ID:', userId);
   }
 
   // Функция отправки в Telegram с защитой
   async function sendToTelegram(text) {
     // Проверяем наличие учетных данных
-    if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID || !isTelegramReady) {
-      console.warn('Отправка в Telegram отменена: отсутствуют учетные данные или бот не готов');
-      return;
+    if (!isTelegramReady || !TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+      console.warn('Отправка в Telegram отменена: бот не инициализирован');
+      return false;
     }
     
+    console.log('Попытка отправки сообщения в Telegram:', text.substring(0, 50) + '...');
+    
     try {
-      // Прокси для обхода CORS
-      const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+      // Список резервных CORS-прокси
+      const proxyUrls = [
+        'https://corsproxy.io/?', 
+        'https://api.codetabs.com/v1/proxy?quest=',
+        'https://cors-anywhere.herokuapp.com/'
+      ];
+      
       const apiUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
       
-      const response = await fetch(proxyUrl + apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: TELEGRAM_CHAT_ID,
-          text: text,
-          parse_mode: 'HTML'
-        })
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Telegram API error! status: ${response.status}`);
+      // Пробуем отправить через разные прокси
+      for (const proxyUrl of proxyUrls) {
+        try {
+          const fullUrl = proxyUrl + encodeURIComponent(apiUrl);
+          console.log('Пробуем прокси:', proxyUrl);
+          
+          const response = await fetch(fullUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: TELEGRAM_CHAT_ID,
+              text: text,
+              parse_mode: 'HTML'
+            })
+          });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          const data = await response.json();
+          console.log('Успешно отправлено через', proxyUrl, data);
+          return true;
+          
+        } catch (proxyError) {
+          console.warn(`Ошибка с прокси ${proxyUrl}:`, proxyError.message);
+        }
       }
       
-      const data = await response.json();
-      console.log('Сообщение отправлено в Telegram:', data);
+      // Попробуем прямую отправку (если браузер разрешает)
+      try {
+        console.log('Пробуем прямую отправку...');
+        const directResponse = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: TELEGRAM_CHAT_ID,
+            text: text,
+            parse_mode: 'HTML'
+          })
+        });
+        
+        if (directResponse.ok) {
+          const data = await directResponse.json();
+          console.log('Успешная прямая отправка!', data);
+          return true;
+        } else {
+          throw new Error(`HTTP error! status: ${directResponse.status}`);
+        }
+      } catch (directError) {
+        console.warn('Прямая отправка не удалась:', directError.message);
+      }
+      
+      console.error('Все методы отправки не сработали');
+      return false;
       
     } catch (error) {
-      console.error('Ошибка отправки в Telegram:', error);
+      console.error('Критическая ошибка отправки в Telegram:', error);
+      return false;
     }
   }
 
-  // ===== ОСТАЛЬНОЙ КОД БЕЗ ИЗМЕНЕНИЙ =====
-  // ... (весь остальной код остается без изменений, начиная с мобильного меню)
-
+  // ===== ОСТАЛЬНОЙ КОД =====
   // Мобильное меню
   const mobileMenuToggle = document.getElementById('mobileMenuToggle');
   const navMenu = document.querySelector('.nav-menu');
@@ -186,10 +240,14 @@ ${data.message || 'без сообщения'}
       `;
       
       // Отправка в Telegram
-      await sendToTelegram(telegramMessage);
+      const isSent = await sendToTelegram(telegramMessage);
       
-      showAlert('Ваше сообщение отправлено! Мы свяжемся с вами в ближайшее время.', 'success');
-      this.reset();
+      if (isSent) {
+        showAlert('Ваше сообщение отправлено! Мы свяжемся с вами в ближайшее время.', 'success');
+        this.reset();
+      } else {
+        showAlert('Ошибка отправки сообщения. Пожалуйста, попробуйте позже.', 'error');
+      }
     });
   }
 
@@ -350,11 +408,16 @@ ${data.message || 'без сообщения'}
         chatMessages.scrollTop = chatMessages.scrollHeight;
         
         // Отправка в Telegram (с проверкой доступности бота)
-        if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
+        if (isTelegramReady) {
           const telegramMessage = `👤 <b>Сообщение от пользователя</b>\nID: ${userId}\n\n${message}`;
-          await sendToTelegram(telegramMessage);
+          const isSent = await sendToTelegram(telegramMessage);
+          
+          if (!isSent) {
+            showAlert('Не удалось отправить сообщение. Попробуйте позже.', 'error');
+          }
         } else {
           console.warn('Чат поддержки не может отправить сообщение: бот не настроен');
+          showAlert('Чат временно недоступен. Пожалуйста, напишите нам в Telegram.', 'error');
         }
       }
     }
@@ -371,22 +434,52 @@ ${data.message || 'без сообщения'}
     });
     
     // Проверка ответов каждые 15 секунд (только если бот настроен)
-    if (TELEGRAM_BOT_TOKEN) {
+    if (isTelegramReady) {
       setInterval(async () => {
         try {
           // Параметр offset для получения только новых сообщений
           const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getUpdates?offset=${lastUpdateId + 1}`;
-          const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
           
-          const response = await fetch(proxyUrl + url);
-          const data = await response.json();
+          // Используем прокси для запроса
+          const proxyUrls = [
+            'https://corsproxy.io/?', 
+            'https://api.codetabs.com/v1/proxy?quest=',
+            'https://cors-anywhere.herokuapp.com/'
+          ];
           
-          if (data.ok && data.result.length > 0) {
+          let updates = null;
+          
+          for (const proxyUrl of proxyUrls) {
+            try {
+              const response = await fetch(proxyUrl + encodeURIComponent(url));
+              const data = await response.json();
+              
+              if (data.ok) {
+                updates = data;
+                break;
+              }
+            } catch (error) {
+              console.warn(`Ошибка получения сообщений через прокси ${proxyUrl}:`, error);
+            }
+          }
+          
+          if (!updates) {
+            console.log('Пробуем прямую проверку сообщений...');
+            try {
+              const directResponse = await fetch(url);
+              updates = await directResponse.json();
+            } catch (directError) {
+              console.warn('Прямая проверка сообщений не удалась:', directError);
+              return;
+            }
+          }
+          
+          if (updates.ok && updates.result.length > 0) {
             // Обновляем lastUpdateId
-            lastUpdateId = data.result[data.result.length - 1].update_id;
+            lastUpdateId = updates.result[updates.result.length - 1].update_id;
             
             // Обработка сообщений
-            for (const update of data.result) {
+            for (const update of updates.result) {
               if (update.message?.text?.includes(`/answer ${userId}`)) {
                 const answer = update.message.text.replace(`/answer ${userId}`, '').trim();
                 
