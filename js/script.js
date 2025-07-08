@@ -1,31 +1,50 @@
 document.addEventListener('DOMContentLoaded', function() {
-  // ===== БЕЗОПАСНАЯ ИНТЕГРАЦИЯ С TELEGRAM =====
+  // ===== БЕЗОПАСНАЯ ИНИЦИАЛИЗАЦИЯ TELEGRAM =====
   let TELEGRAM_BOT_TOKEN = '';
   let TELEGRAM_CHAT_ID = '';
   let isTelegramReady = false;
   
-  // Пытаемся загрузить конфигурацию из внешнего файла
+  // Улучшенная функция загрузки конфигурации
   async function loadTelegramConfig() {
-    try {
-      const response = await fetch('secret/telegram-config.json');
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+    console.log("Попытка загрузки конфигурации Telegram...");
+    const paths = [
+      '/secret/telegram-config.json',
+      './secret/telegram-config.json',
+      'secret/telegram-config.json'
+    ];
+    
+    for (const path of paths) {
+      try {
+        console.log(`Пробуем путь: ${path}`);
+        const response = await fetch(path);
+        
+        if (response.ok) {
+          const config = await response.json();
+          
+          // Проверка наличия данных
+          if (config.BOT_TOKEN && config.CHAT_ID) {
+            console.log("Конфигурация успешно загружена");
+            return config;
+          } else {
+            console.warn("Конфиг загружен, но данные неполные");
+          }
+        } else {
+          console.warn(`HTTP ошибка ${response.status} для ${path}`);
+        }
+      } catch (error) {
+        console.warn(`Ошибка при загрузке ${path}:`, error.message);
       }
-      
-      return await response.json();
-    } catch (error) {
-      console.error('Не удалось загрузить конфигурацию Telegram:', error);
-      return null;
     }
+    
+    console.error("Все пути загрузки конфига не сработали");
+    return null;
   }
   
   // Инициализация Telegram бота
   (async function initTelegram() {
+    console.log('Инициализация Telegram бота...');
+    
     try {
-      console.log('Начало инициализации Telegram бота...');
-      
-      // Всегда пытаемся загрузить конфиг на GitHub Pages
       const config = await loadTelegramConfig();
       
       if (config && config.BOT_TOKEN && config.CHAT_ID) {
@@ -54,9 +73,8 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Найден существующий User ID:', userId);
   }
 
-  // Функция отправки в Telegram с защитой
+  // Функция отправки в Telegram
   async function sendToTelegram(text) {
-    // Проверяем наличие учетных данных
     if (!isTelegramReady || !TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
       console.warn('Отправка в Telegram отменена: бот не инициализирован');
       return false;
@@ -65,78 +83,35 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Попытка отправки сообщения в Telegram:', text.substring(0, 50) + '...');
     
     try {
-      // Список резервных CORS-прокси
-      const proxyUrls = [
-        'https://corsproxy.io/?', 
-        'https://api.codetabs.com/v1/proxy?quest=',
-        'https://cors-anywhere.herokuapp.com/'
-      ];
-      
       const apiUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
       
-      // Пробуем отправить через разные прокси
-      for (const proxyUrl of proxyUrls) {
-        try {
-          const fullUrl = proxyUrl + encodeURIComponent(apiUrl);
-          console.log('Пробуем прокси:', proxyUrl);
-          
-          const response = await fetch(fullUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              chat_id: TELEGRAM_CHAT_ID,
-              text: text,
-              parse_mode: 'HTML'
-            })
-          });
-          
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          
-          const data = await response.json();
-          console.log('Успешно отправлено через', proxyUrl, data);
-          return true;
-          
-        } catch (proxyError) {
-          console.warn(`Ошибка с прокси ${proxyUrl}:`, proxyError.message);
-        }
+      // Используем прокси для обхода CORS
+      const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(apiUrl);
+      
+      const response = await fetch(proxyUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: TELEGRAM_CHAT_ID,
+          text: text,
+          parse_mode: 'HTML'
+        })
+      });
+      
+      if (response.ok) {
+        console.log('Сообщение успешно отправлено в Telegram');
+        return true;
+      } else {
+        console.error(`Ошибка Telegram API: ${response.status}`);
+        return false;
       }
-      
-      // Попробуем прямую отправку (если браузер разрешает)
-      try {
-        console.log('Пробуем прямую отправку...');
-        const directResponse = await fetch(apiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: TELEGRAM_CHAT_ID,
-            text: text,
-            parse_mode: 'HTML'
-          })
-        });
-        
-        if (directResponse.ok) {
-          const data = await directResponse.json();
-          console.log('Успешная прямая отправка!', data);
-          return true;
-        } else {
-          throw new Error(`HTTP error! status: ${directResponse.status}`);
-        }
-      } catch (directError) {
-        console.warn('Прямая отправка не удалась:', directError.message);
-      }
-      
-      console.error('Все методы отправки не сработали');
-      return false;
-      
     } catch (error) {
-      console.error('Критическая ошибка отправки в Telegram:', error);
+      console.error('Ошибка отправки в Telegram:', error);
       return false;
     }
   }
 
-  // ===== ОСТАЛЬНОЙ КОД =====
+  // ===== ОСНОВНАЯ ФУНКЦИОНАЛЬНОСТЬ САЙТА =====
   // Мобильное меню
   const mobileMenuToggle = document.getElementById('mobileMenuToggle');
   const navMenu = document.querySelector('.nav-menu');
@@ -201,7 +176,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   window.addEventListener('scroll', highlightNav);
-  highlightNav(); // Инициализация при загрузке
+  highlightNav();
 
   // Обработка формы обратной связи
   const contactForm = document.querySelector('.contact-form');
@@ -228,7 +203,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
       }
       
-      // Формирование сообщения для Telegram
+      // Формирование сообщения
       const telegramMessage = `
 📥 <b>НОВАЯ ЗАЯВКА С САЙТА!</b>
 ┌────────────────────
@@ -343,7 +318,7 @@ ${data.message || 'без сообщения'}
       if (count > 500) price = 30;
       else if (count > 100) price = 36;
       
-      const result = count * price;
+      const result = isNaN(count) ? 0 : count * price;
       document.getElementById('calculation-result').textContent = 
         result.toLocaleString('ru-RU');
     });
@@ -368,7 +343,7 @@ ${data.message || 'без сообщения'}
     });
   }
 
-  // ЧАТ ПОДДЕРЖКИ С ЗАЩИТОЙ
+  // Чат поддержки
   const chatWidget = document.querySelector('.chat-widget');
   if (chatWidget) {
     const chatHeader = chatWidget.querySelector('.chat-header');
@@ -407,7 +382,7 @@ ${data.message || 'без сообщения'}
         // Прокрутка к последнему сообщению
         chatMessages.scrollTop = chatMessages.scrollHeight;
         
-        // Отправка в Telegram (с проверкой доступности бота)
+        // Отправка в Telegram
         if (isTelegramReady) {
           const telegramMessage = `👤 <b>Сообщение от пользователя</b>\nID: ${userId}\n\n${message}`;
           const isSent = await sendToTelegram(telegramMessage);
@@ -433,7 +408,7 @@ ${data.message || 'без сообщения'}
       }
     });
     
-    // Проверка ответов каждые 15 секунд (только если бот настроен)
+    // Проверка ответов каждые 15 секунд
     if (isTelegramReady) {
       setInterval(async () => {
         try {
@@ -441,45 +416,17 @@ ${data.message || 'без сообщения'}
           const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getUpdates?offset=${lastUpdateId + 1}`;
           
           // Используем прокси для запроса
-          const proxyUrls = [
-            'https://corsproxy.io/?', 
-            'https://api.codetabs.com/v1/proxy?quest=',
-            'https://cors-anywhere.herokuapp.com/'
-          ];
+          const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(url);
           
-          let updates = null;
+          const response = await fetch(proxyUrl);
+          const data = await response.json();
           
-          for (const proxyUrl of proxyUrls) {
-            try {
-              const response = await fetch(proxyUrl + encodeURIComponent(url));
-              const data = await response.json();
-              
-              if (data.ok) {
-                updates = data;
-                break;
-              }
-            } catch (error) {
-              console.warn(`Ошибка получения сообщений через прокси ${proxyUrl}:`, error);
-            }
-          }
-          
-          if (!updates) {
-            console.log('Пробуем прямую проверку сообщений...');
-            try {
-              const directResponse = await fetch(url);
-              updates = await directResponse.json();
-            } catch (directError) {
-              console.warn('Прямая проверка сообщений не удалась:', directError);
-              return;
-            }
-          }
-          
-          if (updates.ok && updates.result.length > 0) {
+          if (data.ok && data.result.length > 0) {
             // Обновляем lastUpdateId
-            lastUpdateId = updates.result[updates.result.length - 1].update_id;
+            lastUpdateId = data.result[data.result.length - 1].update_id;
             
             // Обработка сообщений
-            for (const update of updates.result) {
+            for (const update of data.result) {
               if (update.message?.text?.includes(`/answer ${userId}`)) {
                 const answer = update.message.text.replace(`/answer ${userId}`, '').trim();
                 
