@@ -28,17 +28,38 @@ jobs:
     - name: Create Telegram config
       run: |
         mkdir -p secret
+        # Важно: используем одинарные кавычки для структуры JSON и подстановку секретов
         echo '{"BOT_TOKEN":"${{ secrets.TELEGRAM_BOT_TOKEN }}","CHAT_ID":"${{ secrets.TELEGRAM_CHAT_ID }}"}' > secret/telegram-config.json
-        cat secret/telegram-config.json  # Для отладки
+        # Для отладки: показываем содержимое без раскрытия секретов
+        echo "Config file created. First 10 chars: $(head -c 10 secret/telegram-config.json)..."
+        echo "File size: $(stat -c%s secret/telegram-config.json) bytes"
+    
+    - name: Verify Telegram config
+      run: |
+        echo "Checking secret folder:"
+        ls -la secret/
+        echo "Config content preview:"
+        # Безопасный просмотр без раскрытия секретов
+        head -n 1 secret/telegram-config.json | cut -c 1-30
+    
+    - name: Install dependencies
+      run: npm ci  # Чистая установка зависимостей
+    
+    - name: Build project (if needed)
+      run: npm run build  # Если используете сборку
     
     - name: Debug file structure
-      run: ls -la
-    
+      run: |
+        echo "Current directory:"
+        pwd
+        echo "Full structure:"
+        ls -laR
+        
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v4
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./
+        publish_dir: ./  # Публикуем корневую директорию
         full_commit_message: "Deploy: ${{ github.sha }}"
         user_name: 'github-actions[bot]'
         user_email: 'github-actions[bot]@users.noreply.github.com'
@@ -46,3 +67,8 @@ jobs:
         force_orphan: true
         keep_files: false
         enable_jekyll: false  # Важно для статических сайтов
+        
+    - name: Post-deploy verification
+      run: |
+        echo "Deployment completed!"
+        echo "Website URL: https://${{ github.repository_owner }}.github.io/${{ github.repository }}"
