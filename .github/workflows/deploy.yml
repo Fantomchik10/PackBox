@@ -1,28 +1,48 @@
-name: Deploy with Secrets
+name: Deploy to GitHub Pages
 
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:  # Разрешает ручной запуск
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # Критически важные разрешения
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
-      
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
+    - name: Checkout repository
+      uses: actions/checkout@v4
       with:
-        node-version: 18
-        
-    - name: Create Secret File
+        fetch-depth: 0  # Полная история коммитов
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    
+    - name: Create Telegram config
       run: |
         mkdir -p secret
         echo '{"BOT_TOKEN":"${{ secrets.TELEGRAM_BOT_TOKEN }}","CHAT_ID":"${{ secrets.TELEGRAM_CHAT_ID }}"}' > secret/telegram-config.json
-        
-    - name: Deploy
-      uses: peaceiris/actions-gh-pages@v3
+        cat secret/telegram-config.json  # Для отладки
+    
+    - name: Debug file structure
+      run: ls -la
+    
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v4
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: ./
+        full_commit_message: "Deploy: ${{ github.sha }}"
+        user_name: 'github-actions[bot]'
+        user_email: 'github-actions[bot]@users.noreply.github.com'
+        # Решаем проблему с ошибкой 128:
+        force_orphan: true
+        keep_files: false
+        enable_jekyll: false  # Важно для статических сайтов
