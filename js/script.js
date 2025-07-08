@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
   // ===== Telegram Integration =====
-  const TELEGRAM_BOT_TOKEN = '8196920500:AAG_SEGA7zCbTq-81UVuX60ph8ZnulMb3wA';
-  const TELEGRAM_CHAT_ID = '685765933'; // Ваш Chat ID
+  const TELEGRAM_BOT_TOKEN = '';
+  const TELEGRAM_CHAT_ID = ''; // Ваш Chat ID
   
   // Генерация уникального ID для пользователя
   let userId = localStorage.getItem('chat_user_id');
