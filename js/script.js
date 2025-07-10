@@ -7,6 +7,34 @@ document.addEventListener('DOMContentLoaded', function() {
   // Улучшенная функция загрузки конфигурации
   async function loadTelegramConfig() {
     console.log("Попытка загрузки конфигурации Telegram...");
+    
+    // Основной путь для GitHub Pages
+    try {
+      // Формируем URL к raw-файлу на GitHub
+      const repoOwner = '{{GITHUB_REPO_OWNER}}';
+      const repoName = '{{GITHUB_REPO_NAME}}';
+      const rawUrl = `https://raw.githubusercontent.com/${repoOwner}/${repoName}/gh-pages/secret/telegram-config.json`;
+      
+      console.log(`Пробуем GitHub Raw URL: ${rawUrl}`);
+      const response = await fetch(rawUrl);
+      
+      if (response.ok) {
+        const config = await response.json();
+        
+        if (config.BOT_TOKEN && config.CHAT_ID) {
+          console.log("Конфигурация успешно загружена с GitHub");
+          return config;
+        } else {
+          console.warn("Конфиг загружен, но данные неполные");
+        }
+      } else {
+        console.warn(`HTTP ошибка ${response.status} для GitHub Raw`);
+      }
+    } catch (error) {
+      console.warn(`Ошибка при загрузке с GitHub Raw:`, error.message);
+    }
+    
+    // Fallback: локальные пути
     const paths = [
       '/secret/telegram-config.json',
       './secret/telegram-config.json',
@@ -15,18 +43,15 @@ document.addEventListener('DOMContentLoaded', function() {
     
     for (const path of paths) {
       try {
-        console.log(`Пробуем путь: ${path}`);
+        console.log(`Пробуем локальный путь: ${path}`);
         const response = await fetch(path);
         
         if (response.ok) {
           const config = await response.json();
           
-          // Проверка наличия данных
           if (config.BOT_TOKEN && config.CHAT_ID) {
-            console.log("Конфигурация успешно загружена");
+            console.log("Конфигурация успешно загружена локально");
             return config;
-          } else {
-            console.warn("Конфиг загружен, но данные неполные");
           }
         } else {
           console.warn(`HTTP ошибка ${response.status} для ${path}`);
