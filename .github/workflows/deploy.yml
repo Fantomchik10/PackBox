@@ -3,7 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:  # Разрешает ручной запуск
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -14,67 +14,78 @@ jobs:
       id-token: write
     
     steps:
+    # Шаг 1: Получение кода репозитория
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0  # Полная история коммитов
+        fetch-depth: 0
     
+    # Шаг 2: Установка переменных окружения
     - name: Setup environment variables
       run: |
         echo "GITHUB_REPO_OWNER=${{ github.repository_owner }}" >> $GITHUB_ENV
-        echo "GITHUB_REPO_NAME=${{ github.event.repository.name }}" >> $GITHUB_ENV
-        echo "REPO_URL=https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}" >> $GITHUB_ENV
+        echo "GITHUB_REPO_NAME=${GITHUB_REPOSITORY#*/}" >> $GITHUB_ENV
+        echo "REPO_URL=https://${{ github.repository_owner }}.github.io/${GITHUB_REPOSITORY#*/}" >> $GITHUB_ENV
     
+    # Шаг 3: Создание конфигурации Telegram
     - name: Create Telegram config
       run: |
+        # Создаем папку для конфига
         mkdir -p secret
-        # Безопасное создание JSON с проверкой
-        echo '{"BOT_TOKEN":"'"${{ secrets.TELEGRAM_BOT_TOKEN }}"'","CHAT_ID":"'"${{ secrets.TELEGRAM_CHAT_ID }}"'"}' > secret/telegram-config.json
         
-        # Проверка создания файла
-        if [ -s "secret/telegram-config.json" ]; then
-          echo "✅ Конфиг создан успешно"
-          echo "Размер файла: $(wc -c < secret/telegram-config.json) байт"
+        # Формируем JSON с правильным экранированием
+        echo '{' > secret/telegram-config.json
+        echo '  "BOT_TOKEN": "'"${{ secrets.TELEGRAM_BOT_TOKEN }}"'",' >> secret/telegram-config.json
+        echo '  "CHAT_ID": "'"${{ secrets.TELEGRAM_CHAT_ID }}"'"' >> secret/telegram-config.json
+        echo '}' >> secret/telegram-config.json
+        
+        # Проверяем создание файла
+        if [ -f "secret/telegram-config.json" ]; then
+          echo "✅ Telegram config created successfully"
+          echo "File size: $(wc -c < secret/telegram-config.json) bytes"
+          echo "First line: $(head -1 secret/telegram-config.json)"
         else
-          echo "❌ Ошибка: файл конфига пустой!"
+          echo "❌ Error: Failed to create config file!"
           exit 1
         fi
     
+    # Шаг 4: Обновление скрипта с информацией о репозитории
     - name: Update script with repo info
       run: |
-        sed -i "s/{{GITHUB_REPO_OWNER}}/${{ github.repository_owner }}/g" js/script.js
-        sed -i "s/{{GITHUB_REPO_NAME}}/${{ github.event.repository.name }}/g" js/script.js
-        echo "Script updated with repo info"
+        # Безопасная замена с использованием альтернативного разделителя
+        sed -i "s|{{GITHUB_REPO_OWNER}}|${{ github.repository_owner }}|g" js/script.js
+        sed -i "s|{{GITHUB_REPO_NAME}}|${GITHUB_REPOSITORY#*/}|g" js/script.js
+        echo "Script variables updated"
     
+    # Шаг 5: Проверка структуры файлов
     - name: Verify file structure
       run: |
-        echo "Текущая директория: $(pwd)"
-        echo "Содержимое корня:"
-        ls -la
-        echo "Содержимое папки secret:"
-        ls -la secret/
-        echo "Содержимое папки img:"
-        ls -la img/
-        echo "Проверка HTML файлов:"
-        ls -la *.html
-    
+        echo "Current directory: $(pwd)"
+        echo "Directory structure:"
+        ls -laR
+        
+    # Шаг 6: Деплой на GitHub Pages
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v4
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: ./
-        full_commit_message: "Deploy: ${{ github.sha }}"
-        user_name: 'github-actions[bot]'
-        user_email: 'github-actions[bot]@users.noreply.github.com'
-        force_orphan: true
         keep_files: false
+        force_orphan: true
         enable_jekyll: false
+        full_commit_message: "Deploy: ${{ github.sha }}"
     
+    # Шаг 7: Проверка после деплоя
     - name: Post-deploy verification
       run: |
-        echo "Проверка доступности конфига:"
-        curl -s -o /dev/null -w "HTTP код: %{http_code}" "${{ env.REPO_URL }}/secret/telegram-config.json"
-        echo ""
-        echo "Проверка доступности сайта:"
-        curl -s -o /dev/null -w "HTTP код: %{http_code}" "${{ env.REPO_URL }}"
-        echo ""
+        echo "Waiting 10 seconds for deployment to complete..."
+        sleep 10
+        
+        echo "Testing config access:"
+        curl -I -s "${{ env.REPO_URL }}/secret/telegram-config.json"
+        
+        echo "Testing home page access:"
+        curl -I -s "${{ env.REPO_URL }}"
+        
+        echo "Testing image access:"
+        curl -I -s "${{ env.REPO_URL }}/img/logo-small.png"
